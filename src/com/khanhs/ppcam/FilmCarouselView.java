@@ -10,6 +10,7 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.View;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,6 +20,7 @@ public class FilmCarouselView extends View {
         void onResetPP7();
         void onDeletePreset(PPPreset preset);
         void onToggleFavorite(PPPreset preset);
+        void onReloadSD();
         void onOpenEditor(PPPreset preset);
         void onExitApp();
     }
@@ -37,17 +39,17 @@ public class FilmCarouselView extends View {
     private List<PPPreset> presets = new ArrayList<PPPreset>();
     private int currentIndex = 0;
 
-    // Notification toast timer
+    // Toast Notification Banner
     private String bannerMessage = "";
     private long bannerExpiryTime = 0;
 
     // -------------------------------------------------------------
-    // Full 100% Parameter List for Editor Mode (33 items)
+    // Full 100% Parameter List for Editor Mode (DRO removed)
     // -------------------------------------------------------------
     private PPPreset editingPreset = null;
     private int editorRowIndex = 0;
     private static final String[] EDITOR_ROWS = {
-        "1. Tên công thức (Preset Name)",
+        "1. Preset Name",
         "2. Gamma",
         "3. Black Level",
         "4. Black Gamma Range",
@@ -60,9 +62,9 @@ public class FilmCarouselView extends View {
         "11. Color Mode",
         "12. Saturation",
         "13. Color Phase",
-        "14. Color Depth R (Đỏ)",
-        "15. Color Depth G (Lục)",
-        "16. Color Depth B (Lam)",
+        "14. Color Depth R (Red)",
+        "15. Color Depth G (Green)",
+        "16. Color Depth B (Blue)",
         "17. Color Depth C (Cyan)",
         "18. Color Depth M (Magenta)",
         "19. Color Depth Y (Yellow)",
@@ -74,17 +76,16 @@ public class FilmCarouselView extends View {
         "25. Detail Crispening",
         "26. Detail Hi-Light Detail",
         "27. White Balance Mode",
-        "28. WB Kelvin Temp",
+        "28. WB Kelvin Temperature",
         "29. WB A-B Shift",
         "30. WB G-M Shift",
         "31. Exposure Bias (EV)",
-        "32. DRO Mode",
-        "33. [ KHÔI PHỤC PP7 GỐC ]",
-        ">>> [ LƯU CÔNG THỨC THÀNH CUỘN FILM MỚI ] <<<"
+        "32. [ RESET PP7 TO DEFAULT ]",
+        ">>> [ SAVE AS NEW FILM ROLL ] <<<"
     };
 
     // -------------------------------------------------------------
-    // On-screen Virtual Keyboard for Name Editing
+    // Virtual Keyboard for Name Editing
     // -------------------------------------------------------------
     private StringBuilder keyboardBuffer = new StringBuilder();
     private int kbRow = 0;
@@ -143,7 +144,7 @@ public class FilmCarouselView extends View {
     }
 
     // -------------------------------------------------------------
-    // KEY EVENT ROUTER
+    // KEY EVENT DISPATCHER
     // -------------------------------------------------------------
     public void onAction(KeyCodes.Action action) {
         if (currentMode == Mode.KEYBOARD) {
@@ -183,6 +184,11 @@ public class FilmCarouselView extends View {
                     listener.onApplyPreset(current);
                 }
                 break;
+            case RELOAD_C1:
+                if (listener != null) {
+                    listener.onReloadSD();
+                }
+                break;
             case FAVORITE_C2:
                 PPPreset favP = getCurrentPreset();
                 if (favP != null && listener != null) {
@@ -200,7 +206,7 @@ public class FilmCarouselView extends View {
                     currentMode = Mode.CONFIRM_DELETE;
                     invalidate();
                 } else {
-                    showBanner("Không thể xoá cuộn film mặc định!");
+                    showBanner("CANNOT DELETE BUILT-IN PRESET");
                 }
                 break;
             case EDIT_FN:
@@ -248,9 +254,6 @@ public class FilmCarouselView extends View {
         }
     }
 
-    // -------------------------------------------------------------
-    // EDITOR & KEYBOARD CONTROLLERS
-    // -------------------------------------------------------------
     private void openKeyboard(String initialText) {
         keyboardBuffer.setLength(0);
         if (initialText != null) keyboardBuffer.append(initialText);
@@ -288,7 +291,7 @@ public class FilmCarouselView extends View {
                 if ("OK".equals(key)) {
                     if (editingPreset != null) {
                         String finalName = keyboardBuffer.toString().trim();
-                        if (finalName.length() == 0) finalName = "CUSTOM RECIPE";
+                        if (finalName.length() == 0) finalName = "CUSTOM ROLL";
                         editingPreset.name = finalName;
                         if (listener != null) {
                             listener.onOpenEditor(editingPreset);
@@ -323,7 +326,6 @@ public class FilmCarouselView extends View {
 
     private void handleEditorAction(KeyCodes.Action action) {
         if (action == KeyCodes.Action.BACK_MENU) {
-            // Discard changes
             editingPreset = null;
             currentMode = Mode.CAROUSEL;
             invalidate();
@@ -347,21 +349,21 @@ public class FilmCarouselView extends View {
             return;
         }
 
-        // Row 32: Reset PP7
-        if (editorRowIndex == 32 && action == KeyCodes.Action.CONFIRM) {
+        // Row 31: Reset PP7
+        if (editorRowIndex == 31 && action == KeyCodes.Action.CONFIRM) {
             if (listener != null) listener.onResetPP7();
             currentMode = Mode.CAROUSEL;
             invalidate();
             return;
         }
 
-        // Row 33: Save Recipe
-        if (editorRowIndex == 33 && action == KeyCodes.Action.CONFIRM) {
-            openKeyboard(editingPreset != null ? editingPreset.name : "MY RECIPE");
+        // Row 32: Save Recipe
+        if (editorRowIndex == 32 && action == KeyCodes.Action.CONFIRM) {
+            openKeyboard(editingPreset != null ? editingPreset.name : "MY ROLL");
             return;
         }
 
-        // Parameter Adjustment (Left / Right)
+        // Parameter Adjustment
         int step = (action == KeyCodes.Action.NAV_RIGHT) ? 1 : (action == KeyCodes.Action.NAV_LEFT) ? -1 : 0;
         if (step != 0 && editingPreset != null) {
             adjustParam(editorRowIndex, step);
@@ -380,28 +382,28 @@ public class FilmCarouselView extends View {
             case 2: // Black Level (-15..+15)
                 editingPreset.blackLevel = Math.max(-15, Math.min(15, editingPreset.blackLevel + step));
                 break;
-            case 3: // Black Gamma Range (0=Wide, 1=Middle, 2=Narrow)
+            case 3: // Black Gamma Range
                 editingPreset.blackGammaRange = (editingPreset.blackGammaRange + step + 3) % 3;
                 break;
             case 4: // Black Gamma Level (-7..+7)
                 editingPreset.blackGammaLevel = Math.max(-7, Math.min(7, editingPreset.blackGammaLevel + step));
                 break;
-            case 5: // Knee Mode (0=Auto, 1=Manual)
+            case 5: // Knee Mode (Auto/Manual)
                 editingPreset.kneeMode = 1 - editingPreset.kneeMode;
                 break;
-            case 6: // Knee Auto Max (0..4)
+            case 6: // Knee Auto Max
                 editingPreset.kneeAutoMax = Math.max(0, Math.min(4, editingPreset.kneeAutoMax + step));
                 break;
-            case 7: // Knee Auto Sens (0..2)
+            case 7: // Knee Auto Sens
                 editingPreset.kneeAutoSens = Math.max(0, Math.min(2, editingPreset.kneeAutoSens + step));
                 break;
-            case 8: // Knee Manual Point (0..12)
+            case 8: // Knee Manual Point
                 editingPreset.kneeManualPoint = Math.max(0, Math.min(12, editingPreset.kneeManualPoint + step));
                 break;
-            case 9: // Knee Manual Slope (-5..+5)
+            case 9: // Knee Manual Slope
                 editingPreset.kneeManualSlope = Math.max(-5, Math.min(5, editingPreset.kneeManualSlope + step));
                 break;
-            case 10: // Color Mode (3, 4, 5, 6, 7, 8, 9)
+            case 10: // Color Mode
                 int[] modes = { 3, 4, 5, 6, 7, 8, 9 };
                 int mIdx = 0;
                 for (int i = 0; i < modes.length; i++) if (modes[i] == editingPreset.colorMode) mIdx = i;
@@ -413,62 +415,33 @@ public class FilmCarouselView extends View {
             case 12: // Color Phase (-7..+7)
                 editingPreset.colorPhase = Math.max(-7, Math.min(7, editingPreset.colorPhase + step));
                 break;
-            case 13: // Color Depth R
-                editingPreset.colorDepthR = Math.max(-7, Math.min(7, editingPreset.colorDepthR + step));
-                break;
-            case 14: // Color Depth G
-                editingPreset.colorDepthG = Math.max(-7, Math.min(7, editingPreset.colorDepthG + step));
-                break;
-            case 15: // Color Depth B
-                editingPreset.colorDepthB = Math.max(-7, Math.min(7, editingPreset.colorDepthB + step));
-                break;
-            case 16: // Color Depth C
-                editingPreset.colorDepthC = Math.max(-7, Math.min(7, editingPreset.colorDepthC + step));
-                break;
-            case 17: // Color Depth M
-                editingPreset.colorDepthM = Math.max(-7, Math.min(7, editingPreset.colorDepthM + step));
-                break;
-            case 18: // Color Depth Y
-                editingPreset.colorDepthY = Math.max(-7, Math.min(7, editingPreset.colorDepthY + step));
-                break;
+            case 13: editingPreset.colorDepthR = Math.max(-7, Math.min(7, editingPreset.colorDepthR + step)); break;
+            case 14: editingPreset.colorDepthG = Math.max(-7, Math.min(7, editingPreset.colorDepthG + step)); break;
+            case 15: editingPreset.colorDepthB = Math.max(-7, Math.min(7, editingPreset.colorDepthB + step)); break;
+            case 16: editingPreset.colorDepthC = Math.max(-7, Math.min(7, editingPreset.colorDepthC + step)); break;
+            case 17: editingPreset.colorDepthM = Math.max(-7, Math.min(7, editingPreset.colorDepthM + step)); break;
+            case 18: editingPreset.colorDepthY = Math.max(-7, Math.min(7, editingPreset.colorDepthY + step)); break;
             case 19: // Detail Level (-7..+7)
                 editingPreset.detailLevel = Math.max(-7, Math.min(7, editingPreset.detailLevel + step));
                 break;
-            case 20: // Detail Adjust Mode (0=Auto, 1=Manual)
+            case 20: // Detail Adjust Mode (Auto/Manual)
                 editingPreset.detailAdjustMode = 1 - editingPreset.detailAdjustMode;
                 break;
-            case 21: // Detail V/H Balance (-2..+2)
-                editingPreset.detailVhBalance = Math.max(-2, Math.min(2, editingPreset.detailVhBalance + step));
-                break;
-            case 22: // Detail B/W Balance (0..4)
-                editingPreset.detailBwBalance = Math.max(0, Math.min(4, editingPreset.detailBwBalance + step));
-                break;
-            case 23: // Detail Limit (0..7)
-                editingPreset.detailLimit = Math.max(0, Math.min(7, editingPreset.detailLimit + step));
-                break;
-            case 24: // Detail Crispening (0..7)
-                editingPreset.detailCrispening = Math.max(0, Math.min(7, editingPreset.detailCrispening + step));
-                break;
-            case 25: // Detail Hi-Light (0..4)
-                editingPreset.detailHilight = Math.max(0, Math.min(4, editingPreset.detailHilight + step));
-                break;
-            case 26: // WB Mode (1=Auto, 14=Kelvin)
+            case 21: editingPreset.detailVhBalance = Math.max(-2, Math.min(2, editingPreset.detailVhBalance + step)); break;
+            case 22: editingPreset.detailBwBalance = Math.max(0, Math.min(4, editingPreset.detailBwBalance + step)); break;
+            case 23: editingPreset.detailLimit = Math.max(0, Math.min(7, editingPreset.detailLimit + step)); break;
+            case 24: editingPreset.detailCrispening = Math.max(0, Math.min(7, editingPreset.detailCrispening + step)); break;
+            case 25: editingPreset.detailHilight = Math.max(0, Math.min(4, editingPreset.detailHilight + step)); break;
+            case 26: // WB Mode
                 editingPreset.wbMode = (editingPreset.wbMode == 14) ? 1 : 14;
                 break;
             case 27: // WB Kelvin (25..99)
                 editingPreset.wbKelvin = Math.max(25, Math.min(99, editingPreset.wbKelvin + step));
                 break;
-            case 28: // WB A-B Shift (-7..+7)
-                editingPreset.wbAbShift = Math.max(-7, Math.min(7, editingPreset.wbAbShift + step));
-                break;
-            case 29: // WB G-M Shift (-7..+7)
-                editingPreset.wbGmShift = Math.max(-7, Math.min(7, editingPreset.wbGmShift + step));
-                break;
+            case 28: editingPreset.wbAbShift = Math.max(-7, Math.min(7, editingPreset.wbAbShift + step)); break;
+            case 29: editingPreset.wbGmShift = Math.max(-7, Math.min(7, editingPreset.wbGmShift + step)); break;
             case 30: // Exposure EV (-6..+6 steps of 1/3)
                 editingPreset.exposureBias = Math.max(-6, Math.min(6, editingPreset.exposureBias + step));
-                break;
-            case 31: // DRO (0=Off, 1=Auto, 2..6=Lv1..5)
-                editingPreset.droMode = Math.max(0, Math.min(6, editingPreset.droMode + step));
                 break;
         }
     }
@@ -507,18 +480,17 @@ public class FilmCarouselView extends View {
             case 28: return editingPreset.wbAbShift == 0 ? "0" : (editingPreset.wbAbShift > 0 ? "A" + editingPreset.wbAbShift : "B" + (-editingPreset.wbAbShift));
             case 29: return editingPreset.wbGmShift == 0 ? "0" : (editingPreset.wbGmShift > 0 ? "M" + editingPreset.wbGmShift : "G" + (-editingPreset.wbGmShift));
             case 30: return editingPreset.getEvLabel();
-            case 31: return editingPreset.droMode == 1 ? "Auto" : editingPreset.droMode > 1 ? "Lv" + (editingPreset.droMode - 1) : "Off";
             default: return "";
         }
     }
 
     // -------------------------------------------------------------
-    // DRAWING SYSTEM (ZERO OVERFLOW + 3D CANISTER)
+    // FITTED TEXT (PREVENTS OVERFLOW WITH HIGH-RES FONT)
     // -------------------------------------------------------------
     private void drawFittedText(Canvas canvas, String text, float x, float y, Paint paint, float maxW, Paint.Align align) {
         paint.setTextAlign(align);
         float origSize = paint.getTextSize();
-        while (paint.measureText(text) > maxW && paint.getTextSize() > 9) {
+        while (paint.measureText(text) > maxW && paint.getTextSize() > 11.0f) {
             paint.setTextSize(paint.getTextSize() - 0.5f);
         }
         canvas.drawText(text, x, y, paint);
@@ -547,98 +519,113 @@ public class FilmCarouselView extends View {
 
         PPPreset curr = getCurrentPreset();
 
+        // -------------------------------------------------------------
         // ROW 1: HEADER
+        // -------------------------------------------------------------
         pDraw.setColor(0xFF1E2228);
         canvas.drawRect(0, 0, w, rowH, pDraw);
 
-        pText.setTextSize(13);
+        pText.setTextSize(14.0f);
         pText.setColor(0xFF00E5FF);
-        drawFittedText(canvas, "[SD: " + presets.size() + " PRESETS]", 15, rowH * 0.65f, pText, w * 0.32f, Paint.Align.LEFT);
+        drawFittedText(canvas, "[SD: " + presets.size() + " PRESETS]", 16, rowH * 0.65f, pText, w * 0.32f, Paint.Align.LEFT);
 
         pText.setColor(0xFFFFFFFF);
         pText.setFakeBoldText(true);
-        drawFittedText(canvas, "PP-LOADER (A7 II)", w * 0.5f, rowH * 0.65f, pText, w * 0.35f, Paint.Align.CENTER);
+        drawFittedText(canvas, "PP.CAM (ILCE-7M2)", w * 0.5f, rowH * 0.65f, pText, w * 0.36f, Paint.Align.CENTER);
         pText.setFakeBoldText(false);
 
         pText.setColor(0xFFFFB300);
-        drawFittedText(canvas, "[SLOT: PP7]", w - 15, rowH * 0.65f, pText, w * 0.30f, Paint.Align.RIGHT);
+        drawFittedText(canvas, "[TARGET: PP7]", w - 16, rowH * 0.65f, pText, w * 0.30f, Paint.Align.RIGHT);
 
-        // ROW 2: STAR & FILE INFO
+        // -------------------------------------------------------------
+        // ROW 2: FAVORITE BADGE & FILE NAME
+        // -------------------------------------------------------------
         float r2Y = rowH * 1.62f;
         if (curr != null) {
             if (curr.isFavorite) {
                 pText.setColor(0xFFFFD700);
-                pText.setTextSize(14);
-                drawFittedText(canvas, "★ FAVORITE RECIPE ★", w * 0.5f, r2Y, pText, w - 40, Paint.Align.CENTER);
+                pText.setTextSize(15.0f);
+                pText.setFakeBoldText(true);
+                drawFittedText(canvas, "★ FAVORITE FILM ROLL ★", w * 0.5f, r2Y, pText, w - 40, Paint.Align.CENTER);
+                pText.setFakeBoldText(false);
             } else {
-                pText.setColor(0xFF888888);
-                pText.setTextSize(12);
-                String fName = (curr.filePath != null) ? new java.io.File(curr.filePath).getName() : "BUILT-IN PRESET";
+                pText.setColor(0xFF8E99A4);
+                pText.setTextSize(13.0f);
+                String fName = (curr.filePath != null) ? new File(curr.filePath).getName() : "BUILT-IN PRESET";
                 drawFittedText(canvas, "FILE: " + fName, w * 0.5f, r2Y, pText, w - 40, Paint.Align.CENTER);
             }
         }
 
-        // ROWS 3, 4, 5: 3D 35mm FILM CANISTER STAGE
-        float stageCenterY = rowH * 3.85f;
+        // -------------------------------------------------------------
+        // ROWS 3, 4, 5: RETRO ISOMETRIC 3D FILM CANISTER (Inspired by Game Boy screen)
+        // -------------------------------------------------------------
+        float stageCenterY = rowH * 3.82f;
         if (!presets.isEmpty()) {
             if (presets.size() > 1) {
                 int prevIdx = (currentIndex - 1 + presets.size()) % presets.size();
-                drawRealistic3DCanister(canvas, presets.get(prevIdx), w * 0.16f, stageCenterY, 0.68f, 0.50f);
+                drawIsometricCanister(canvas, presets.get(prevIdx), w * 0.16f, stageCenterY, 0.65f, 0.45f);
 
                 int nextIdx = (currentIndex + 1) % presets.size();
-                drawRealistic3DCanister(canvas, presets.get(nextIdx), w * 0.84f, stageCenterY, 0.68f, 0.50f);
+                drawIsometricCanister(canvas, presets.get(nextIdx), w * 0.84f, stageCenterY, 0.65f, 0.45f);
             }
-            drawRealistic3DCanister(canvas, curr, w * 0.5f, stageCenterY, 1.0f, 1.0f);
+            drawIsometricCanister(canvas, curr, w * 0.5f, stageCenterY, 1.0f, 1.0f);
         }
 
-        // ROW 6: PRESET TITLE
+        // -------------------------------------------------------------
+        // ROW 6: LARGE PRESET TITLE (Bold & High Legibility)
+        // -------------------------------------------------------------
         float r6Y = rowH * 5.75f;
-        pText.setTextSize(20);
+        pText.setTextSize(22.0f);
         pText.setColor(0xFFFFFFFF);
         pText.setFakeBoldText(true);
         if (curr != null) {
-            drawFittedText(canvas, curr.name, w * 0.5f, r6Y, pText, w - 40, Paint.Align.CENTER);
+            drawFittedText(canvas, curr.name, w * 0.5f, r6Y, pText, w - 36, Paint.Align.CENTER);
         }
         pText.setFakeBoldText(false);
 
-        // ROW 7: PP CORE SUMMARY
+        // -------------------------------------------------------------
+        // ROW 7: PP SUMMARY (DRO REMOVED, CLEAR FONT)
+        // -------------------------------------------------------------
         float r7Y = rowH * 6.70f;
-        pText.setTextSize(12.5f);
-        pText.setColor(0xFFCCCCCC);
+        pText.setTextSize(14.5f);
+        pText.setColor(0xFFD4DCE4);
         if (curr != null) {
             String ppInfo = "PP7: " + curr.getGammaLabel() +
-                            " | " + curr.getColorModeLabel() +
-                            " | Sat " + (curr.saturation >= 0 ? "+" : "") + curr.saturation +
-                            " | Phase " + curr.colorPhase +
-                            " | Detail " + curr.detailLevel;
-            drawFittedText(canvas, ppInfo, w * 0.5f, r7Y, pText, w - 30, Paint.Align.CENTER);
+                            "  |  Color: " + curr.getColorModeLabel() +
+                            "  |  Sat: " + (curr.saturation >= 0 ? "+" : "") + curr.saturation +
+                            "  |  Phase: " + curr.colorPhase +
+                            "  |  Detail: " + curr.detailLevel;
+            drawFittedText(canvas, ppInfo, w * 0.5f, r7Y, pText, w - 24, Paint.Align.CENTER);
         }
 
-        // ROW 8: WB & EXPOSURE
+        // -------------------------------------------------------------
+        // ROW 8: WB & EXPOSURE (NO DRO, HIGH CONTRAST)
+        // -------------------------------------------------------------
         float r8Y = rowH * 7.70f;
-        pText.setTextSize(12.5f);
+        pText.setTextSize(14.5f);
         pText.setColor(0xFFFFD54F);
         if (curr != null) {
             String colorInfo = "WB: " + curr.getWbLabel() + " (" + curr.getWbShiftLabel() + ")" +
-                               " | EV " + curr.getEvLabel() +
-                               " | DRO " + (curr.droMode == 1 ? "Auto" : curr.droMode > 1 ? "Lv" + (curr.droMode - 1) : "Off") +
-                               " | BL " + curr.blackLevel;
-            drawFittedText(canvas, colorInfo, w * 0.5f, r8Y, pText, w - 30, Paint.Align.CENTER);
+                               "  |  EV: " + curr.getEvLabel() +
+                               "  |  Black Level: " + curr.blackLevel;
+            drawFittedText(canvas, colorInfo, w * 0.5f, r8Y, pText, w - 24, Paint.Align.CENTER);
         }
 
-        // ROW 9: FOOTER / HINT BAR
+        // -------------------------------------------------------------
+        // ROW 9: HINT BAR (PURE ENGLISH, NEAT SPACING)
+        // -------------------------------------------------------------
         float r9Top = rowH * 8.0f;
         pDraw.setColor(0xFF000000);
         canvas.drawRect(0, r9Top, w, h, pDraw);
-        pDraw.setColor(0xFF333333);
+        pDraw.setColor(0xFF2C3238);
         canvas.drawLine(0, r9Top, w, r9Top, pDraw);
 
-        pText.setTextSize(12.5f);
+        pText.setTextSize(13.2f);
         pText.setColor(0xFFFF9800);
-        drawFittedText(canvas, "[C2]★  [C3]Reset  [C4]Xoá  [Fn]Sửa  [Center]Gán PP7  [MENU]Thoát",
-                w * 0.5f, r9Top + rowH * 0.65f, pText, w - 24, Paint.Align.CENTER);
+        drawFittedText(canvas, "[C1] Reload  [C2] ★ Fav  [C3] Reset  [C4] Del  [Fn] Edit  [Center] Overwrite PP7  [MENU] Exit",
+                w * 0.5f, r9Top + rowH * 0.65f, pText, w - 20, Paint.Align.CENTER);
 
-        // Toast message banner
+        // Toast Message Banner
         if (System.currentTimeMillis() < bannerExpiryTime) {
             drawToast(canvas, w, h, bannerMessage);
             postInvalidateDelayed(100);
@@ -646,18 +633,19 @@ public class FilmCarouselView extends View {
 
         // Confirmation modals
         if (currentMode == Mode.CONFIRM_DELETE) {
-            drawConfirmDialog(canvas, w, h, "Xoá cuộn film [" + (curr != null ? curr.name : "") + "]?",
-                    "[Center] Đồng ý xoá", "[MENU] Huỷ bỏ", 0xFFD32F2F);
+            drawConfirmDialog(canvas, w, h, "Delete recipe [" + (curr != null ? curr.name : "") + "] from SD card?",
+                    "[Center] Confirm Delete", "[MENU] Cancel", 0xFFD32F2F);
         } else if (currentMode == Mode.CONFIRM_RESET) {
-            drawConfirmDialog(canvas, w, h, "Khôi phục PP7, WB, EV về mặc định?",
-                    "[Center] Xác nhận Reset", "[MENU] Huỷ bỏ", 0xFFE65100);
+            drawConfirmDialog(canvas, w, h, "Reset PP7, WB, EV to factory defaults?",
+                    "[Center] Confirm Reset", "[MENU] Cancel", 0xFFE65100);
         }
     }
 
     /**
-     * Renders a photorealistic 3D 35mm film canister (Cylinder lighting, spool core, film leader tab).
+     * Renders an iconic, retro isometric 3D film canister with dual-sprocket film leader
+     * inspired by the Game Boy / retro camera aesthetic (Image 3).
      */
-    private void drawRealistic3DCanister(Canvas canvas, PPPreset p, float cx, float cy, float scale, float opacity) {
+    private void drawIsometricCanister(Canvas canvas, PPPreset p, float cx, float cy, float scale, float opacity) {
         if (p == null) return;
         canvas.save();
         canvas.translate(cx, cy);
@@ -665,150 +653,179 @@ public class FilmCarouselView extends View {
 
         int alpha = (int) (255 * opacity);
 
-        float canW = 118.0f;
-        float canH = 138.0f;
+        float canW = 96.0f;
+        float canH = 126.0f;
         float halfW = canW * 0.5f;
         float halfH = canH * 0.5f;
 
-        // 1. Spool Knob (Lõi xoay nhựa nhô lên trên đỉnh)
-        float spoolW = 28.0f;
-        float spoolH = 22.0f;
-        pDraw.setShader(new LinearGradient(-spoolW * 0.5f, -halfH - spoolH, spoolW * 0.5f, -halfH - spoolH,
-                new int[] { 0xFF151515, 0xFF4A4A4A, 0xFF1A1A1A }, null, Shader.TileMode.CLAMP));
+        // Perspective ellipse heights
+        float ry = 13.0f;
+
+        // 1. Film Leader Strip (Long extending strip to the right with dual rows of sprocket holes)
+        float stripX = halfW - 8.0f;
+        float stripY = -halfH + 20.0f;
+        float stripW = 82.0f;
+        float stripH = canH - 32.0f;
+
+        // Dark charcoal acetate film base
+        pDraw.setColor(0xFF2E2218);
         pDraw.setAlpha(alpha);
-        rect.set(-spoolW * 0.5f, -halfH - spoolH, spoolW * 0.5f, -halfH);
+        rect.set(stripX, stripY, stripX + stripW, stripY + stripH);
         canvas.drawRoundRect(rect, 4, 4, pDraw);
 
-        // Hollow center inside spool
-        pDraw.setShader(null);
-        pDraw.setColor(0xFF0A0A0A);
+        // Film border outline
+        pDraw.setStyle(Paint.Style.STROKE);
+        pDraw.setStrokeWidth(2.0f);
+        pDraw.setColor(0xFF4A3828);
         pDraw.setAlpha(alpha);
-        rect.set(-spoolW * 0.32f, -halfH - spoolH, spoolW * 0.32f, -halfH - spoolH + 4);
-        canvas.drawOval(rect, pDraw);
-
-        // 2. Film Leader Strip (Đoạn phim nhô ra bên phải kèm 2 lỗ răng cưa)
-        float filmTabW = 46.0f;
-        float filmTabH = 76.0f;
-        float filmTabX = halfW - 4.0f;
-        float filmTabY = -filmTabH * 0.5f;
-
-        // Dark brown film acetate
-        pDraw.setColor(0xFF422818);
-        pDraw.setAlpha(alpha);
-        rect.set(filmTabX, filmTabY, filmTabX + filmTabW, filmTabY + filmTabH);
         canvas.drawRoundRect(rect, 4, 4, pDraw);
+        pDraw.setStyle(Paint.Style.FILL);
 
-        // Film Sprocket Holes (Lỗ răng cưa hình chữ nhật bo tròn)
-        pDraw.setColor(0xFF101214);
+        // Dual Rows of Sprocket Holes (Top and Bottom rows of holes)
+        pDraw.setColor(0xFF101214); // Screen background cutout
         pDraw.setAlpha(alpha);
-        float holeW = 10.0f;
-        float holeH = 15.0f;
-        rect.set(filmTabX + filmTabW - 14, filmTabY + 14, filmTabX + filmTabW - 14 + holeW, filmTabY + 14 + holeH);
-        canvas.drawRoundRect(rect, 2, 2, pDraw);
-        rect.set(filmTabX + filmTabW - 14, filmTabY + filmTabH - 14 - holeH, filmTabX + filmTabW - 14 + holeW, filmTabY + filmTabH - 14);
-        canvas.drawRoundRect(rect, 2, 2, pDraw);
+        int numHoles = 5;
+        float holeW = 9.0f;
+        float holeH = 12.0f;
+        float holeGap = 15.0f;
 
-        // Felt Velvet Exit Slit (Vết nỉ đen giữ phim)
-        pDraw.setColor(0xFF0F0F0F);
+        for (int i = 0; i < numHoles; i++) {
+            float hx = stripX + 12.0f + (i * holeGap);
+            // Top sprocket row
+            rect.set(hx, stripY + 5.0f, hx + holeW, stripY + 5.0f + holeH);
+            canvas.drawRoundRect(rect, 2, 2, pDraw);
+            // Bottom sprocket row
+            rect.set(hx, stripY + stripH - 5.0f - holeH, hx + holeW, stripY + stripH - 5.0f);
+            canvas.drawRoundRect(rect, 2, 2, pDraw);
+        }
+
+        // Felt Velvet Black Exit Lip
+        pDraw.setColor(0xFF080808);
         pDraw.setAlpha(alpha);
-        rect.set(halfW - 5.0f, -halfH + 8, halfW + 2.0f, halfH - 8);
+        rect.set(halfW - 10.0f, -halfH + 12, halfW + 1.0f, halfH - 12);
         canvas.drawRoundRect(rect, 2, 2, pDraw);
 
-        // 3. Canister Body (3D Cylindrical Shader)
-        int shadeDark, shadeLight, baseColor;
-        int textBrandColor = 0xFFFFFFFF;
-        String brandLabel = "35mm";
-        String speedLabel = "200";
+        // 2. Canister Main Body (Cylindrical gradient with metallic highlights)
+        int shadeDark, shadeLight, baseColor, brandColor;
+        String brandLabel = "FILM";
+        String speedLabel = "36";
 
         switch (p.filmType) {
             case PPPreset.TYPE_KODAK:
                 shadeDark = 0xFFB37400;
                 shadeLight = 0xFFFFEA80;
-                baseColor = 0xFFF5A623; // Kodak Gold Yellow
-                textBrandColor = 0xFFD32F2F;
-                brandLabel = "Kodak";
+                baseColor = 0xFFF5A623;
+                brandColor = 0xFFD32F2F;
+                brandLabel = "KODAK";
                 speedLabel = "200";
                 break;
             case PPPreset.TYPE_FUJI:
                 shadeDark = 0xFF0D4D20;
                 shadeLight = 0xFF63C780;
-                baseColor = 0xFF1E7E34; // Fuji Green
+                baseColor = 0xFF1E7E34;
+                brandColor = 0xFFFFFFFF;
                 brandLabel = "FUJI";
                 speedLabel = "400";
                 break;
             case PPPreset.TYPE_CINESTILL:
-                shadeDark = 0xFF1C1D1E;
+                shadeDark = 0xFF181A1C;
                 shadeLight = 0xFF54575A;
-                baseColor = 0xFF2B2D2F; // Titanium
-                textBrandColor = 0xFFE53935;
+                baseColor = 0xFF2B2D2F;
+                brandColor = 0xFFE53935;
                 brandLabel = "CINE";
                 speedLabel = "50D";
                 break;
             case PPPreset.TYPE_MONOCHROME:
-                shadeDark = 0xFF141414;
-                shadeLight = 0xFF666666;
-                baseColor = 0xFF282828;
+                shadeDark = 0xFF121212;
+                shadeLight = 0xFF707070;
+                baseColor = 0xFF2A2A2A;
+                brandColor = 0xFFFFFFFF;
                 brandLabel = "B&W";
                 speedLabel = "100";
                 break;
             case PPPreset.TYPE_BODY_CUSTOM:
             default:
-                shadeDark = 0xFF3D0C5A;
-                shadeLight = 0xFFC060FF;
-                baseColor = 0xFF6A1B9A; // Cyber violet
+                shadeDark = 0xFF350A50;
+                shadeLight = 0xFFBF5BFF;
+                baseColor = 0xFF6A1B9A;
+                brandColor = 0xFF00E5FF;
                 brandLabel = "CUSTOM";
                 speedLabel = "PP7";
                 break;
         }
 
+        // Bottom Cap Ellipse
+        pDraw.setColor(0xFF181818);
+        pDraw.setAlpha(alpha);
+        rect.set(-halfW - 2, halfH - ry - 2, halfW + 2, halfH + ry + 2);
+        canvas.drawOval(rect, pDraw);
+
+        // Cylinder Body
         pDraw.setShader(new LinearGradient(-halfW, 0, halfW, 0,
                 new int[] { shadeDark, shadeLight, baseColor, shadeDark },
-                new float[] { 0.0f, 0.22f, 0.60f, 1.0f },
+                new float[] { 0.0f, 0.24f, 0.65f, 1.0f },
                 Shader.TileMode.CLAMP));
         pDraw.setAlpha(alpha);
         rect.set(-halfW, -halfH, halfW, halfH);
-        canvas.drawRoundRect(rect, 8, 8, pDraw);
+        canvas.drawRect(rect, pDraw);
 
-        // 4. Top & Bottom Metallic Rims (Vành kim loại bo tròn)
-        pDraw.setShader(new LinearGradient(-halfW - 2, 0, halfW + 2, 0,
-                new int[] { 0xFF1C1C1C, 0xFF6E6E6E, 0xFF242424, 0xFF141414 },
-                new float[] { 0.0f, 0.20f, 0.65f, 1.0f },
-                Shader.TileMode.CLAMP));
-        pDraw.setAlpha(alpha);
-        // Top Rim
-        rect.set(-halfW - 2, -halfH - 2, halfW + 2, -halfH + 10);
-        canvas.drawRoundRect(rect, 4, 4, pDraw);
-        // Bottom Rim
-        rect.set(-halfW - 2, halfH - 10, halfW + 2, halfH + 2);
-        canvas.drawRoundRect(rect, 4, 4, pDraw);
-
-        // 5. Typography on Canister (Chữ in sắc nét)
+        // Cylinder Body Contour Outline
         pDraw.setShader(null);
+        pDraw.setStyle(Paint.Style.STROKE);
+        pDraw.setStrokeWidth(2.0f);
+        pDraw.setColor(0xFF000000);
+        pDraw.setAlpha(alpha);
+        canvas.drawLine(-halfW, -halfH, -halfW, halfH, pDraw);
+        canvas.drawLine(halfW, -halfH, halfW, halfH, pDraw);
+        pDraw.setStyle(Paint.Style.FILL);
+
+        // Top Metallic Rim Ellipse
+        pDraw.setShader(new LinearGradient(-halfW, -halfH - ry, halfW, -halfH + ry,
+                new int[] { 0xFF202020, 0xFF707070, 0xFF202020 }, null, Shader.TileMode.CLAMP));
+        pDraw.setAlpha(alpha);
+        rect.set(-halfW - 2, -halfH - ry, halfW + 2, -halfH + ry);
+        canvas.drawOval(rect, pDraw);
+
+        // 3. Spool Knob on Top (Central core sticking out)
+        pDraw.setShader(new LinearGradient(-14, 0, 14, 0,
+                new int[] { 0xFF181818, 0xFF555555, 0xFF181818 }, null, Shader.TileMode.CLAMP));
+        pDraw.setAlpha(alpha);
+        rect.set(-14, -halfH - ry - 18, 14, -halfH - ry + 4);
+        canvas.drawRoundRect(rect, 4, 4, pDraw);
+
+        // Spool hollow oval on top
+        pDraw.setShader(null);
+        pDraw.setColor(0xFF0A0A0A);
+        pDraw.setAlpha(alpha);
+        rect.set(-10, -halfH - ry - 20, 10, -halfH - ry - 14);
+        canvas.drawOval(rect, pDraw);
+
+        // 4. Bold Retro Graphic Branding on Canister
         pText.setAlpha(alpha);
         pText.setTextAlign(Paint.Align.CENTER);
         pText.setFakeBoldText(true);
 
-        // Brand Name (e.g. Kodak, CineStill)
-        pText.setColor(textBrandColor);
-        pText.setTextSize(18);
-        canvas.drawText(brandLabel, -6, -18, pText);
+        // Brand Label
+        pText.setColor(brandColor);
+        pText.setTextSize(18.0f);
+        canvas.drawText(brandLabel, -6, -14, pText);
 
-        // Big ISO / Speed (e.g. 200, 50D, PP7)
+        // Big Retro Speed Number
         pText.setColor(0xFFFFFFFF);
-        pText.setTextSize(26);
-        canvas.drawText(speedLabel, -6, 12, pText);
+        pText.setTextSize(26.0f);
+        canvas.drawText(speedLabel, -6, 16, pText);
 
-        // Subtitle
-        pText.setTextSize(10);
+        // Subtitle line
+        pText.setTextSize(10.5f);
         pText.setColor(0xFFDDDDDD);
         pText.setFakeBoldText(false);
-        canvas.drawText("35mm • 36 EXP", -6, 32, pText);
+        canvas.drawText("35mm • 36 EXP", -6, 36, pText);
 
         // Star badge if favorite
         if (p.isFavorite) {
             pText.setColor(0xFFFFD700);
-            pText.setTextSize(20);
-            canvas.drawText("★", -halfW + 18, -halfH + 24, pText);
+            pText.setTextSize(22.0f);
+            canvas.drawText("★", -halfW + 18, -halfH + 18, pText);
         }
 
         canvas.restore();
@@ -823,10 +840,10 @@ public class FilmCarouselView extends View {
         // Title Bar
         pDraw.setColor(0xFF1E2228);
         canvas.drawRect(0, 0, w, rowH, pDraw);
-        pText.setTextSize(15);
+        pText.setTextSize(16.0f);
         pText.setColor(0xFFFF9800);
         pText.setFakeBoldText(true);
-        drawFittedText(canvas, "BÀN PHÍM ĐẶT TÊN CUỘN FILM", w * 0.5f, rowH * 0.65f, pText, w - 40, Paint.Align.CENTER);
+        drawFittedText(canvas, "NAME YOUR FILM ROLL", w * 0.5f, rowH * 0.65f, pText, w - 40, Paint.Align.CENTER);
         pText.setFakeBoldText(false);
 
         // Input Field Box
@@ -836,7 +853,7 @@ public class FilmCarouselView extends View {
         rect.set(24, boxTop, w - 24, boxTop + boxH);
         canvas.drawRoundRect(rect, 6, 6, pDraw);
 
-        pText.setTextSize(19);
+        pText.setTextSize(20.0f);
         pText.setColor(0xFF00E5FF);
         pText.setFakeBoldText(true);
         String displayBuffer = "[" + keyboardBuffer.toString() + "_]";
@@ -860,7 +877,7 @@ public class FilmCarouselView extends View {
                 rect.set(x + 2, y + 2, x + keyW - 2, y + keyH - 2);
                 canvas.drawRoundRect(rect, 4, 4, pDraw);
 
-                pText.setTextSize(keyH * 0.50f);
+                pText.setTextSize(keyH * 0.52f);
                 pText.setColor(isSel ? 0xFFFFFFFF : 0xFFDDDDDD);
                 pText.setFakeBoldText(isSel);
                 drawFittedText(canvas, KB_KEYS[r][c], x + keyW * 0.5f, y + keyH * 0.68f, pText, keyW - 4, Paint.Align.CENTER);
@@ -872,10 +889,10 @@ public class FilmCarouselView extends View {
         float fTop = rowH * 8.0f;
         pDraw.setColor(0xFF000000);
         canvas.drawRect(0, fTop, w, h, pDraw);
-        pText.setTextSize(12.5f);
+        pText.setTextSize(13.2f);
         pText.setColor(0xFFFF9800);
-        drawFittedText(canvas, "[Bánh xe / 4 hướng] Di chuyển   [Center] Chọn   [C4] Xoá   [MENU] Huỷ",
-                w * 0.5f, fTop + rowH * 0.65f, pText, w - 24, Paint.Align.CENTER);
+        drawFittedText(canvas, "[Wheel/D-Pad] Move   [Center] Type   [C4/DEL] Delete   [MENU] Cancel",
+                w * 0.5f, fTop + rowH * 0.65f, pText, w - 20, Paint.Align.CENTER);
     }
 
     // -------------------------------------------------------------
@@ -886,9 +903,9 @@ public class FilmCarouselView extends View {
         pDraw.setColor(0xFF1E2228);
         canvas.drawRect(0, 0, w, rowH, pDraw);
         pText.setColor(0xFFFF9800);
-        pText.setTextSize(15);
+        pText.setTextSize(16.0f);
         pText.setFakeBoldText(true);
-        drawFittedText(canvas, "CHỈNH SỬA TOÀN DIỆN (100% PP + WB + EV)", w * 0.5f, rowH * 0.65f, pText, w - 40, Paint.Align.CENTER);
+        drawFittedText(canvas, "RECIPE EDITOR (100% PP + WB + EV)", w * 0.5f, rowH * 0.65f, pText, w - 40, Paint.Align.CENTER);
         pText.setFakeBoldText(false);
 
         // Items Viewport
@@ -908,12 +925,12 @@ public class FilmCarouselView extends View {
                 canvas.drawRoundRect(rect, 4, 4, pDraw);
             }
 
-            pText.setTextSize(12.5f);
+            pText.setTextSize(13.5f);
             pText.setColor(isSelected ? 0xFF00E5FF : 0xFFCCCCCC);
             drawFittedText(canvas, EDITOR_ROWS[row], 24, y, pText, w * 0.58f, Paint.Align.LEFT);
 
             // Value column
-            if (row < 32 && editingPreset != null) {
+            if (row < 31 && editingPreset != null) {
                 String valStr = getEditorValue(row);
                 pText.setColor(isSelected ? 0xFFFFD54F : 0xFFFFFFFF);
                 drawFittedText(canvas, valStr, w - 24, y, pText, w * 0.35f, Paint.Align.RIGHT);
@@ -924,17 +941,17 @@ public class FilmCarouselView extends View {
         float fTop = rowH * 8.0f;
         pDraw.setColor(0xFF000000);
         canvas.drawRect(0, fTop, w, h, pDraw);
-        pText.setTextSize(12.5f);
+        pText.setTextSize(13.2f);
         pText.setColor(0xFFFF9800);
-        drawFittedText(canvas, "[Lên/Xuống] Chọn   [Trái/Phải] Thay đổi   [Center] Đổi tên / Lưu   [MENU] Huỷ",
-                w * 0.5f, fTop + rowH * 0.65f, pText, w - 24, Paint.Align.CENTER);
+        drawFittedText(canvas, "[Up/Down] Select   [Left/Right] Adjust   [Center] Edit/Save   [MENU] Discard",
+                w * 0.5f, fTop + rowH * 0.65f, pText, w - 20, Paint.Align.CENTER);
     }
 
     private void drawConfirmDialog(Canvas canvas, float w, float h, String title, String btnOk, String btnCancel, int headerColor) {
         pDraw.setColor(0xDD000000);
         canvas.drawRect(0, 0, w, h, pDraw);
 
-        float dw = w * 0.72f;
+        float dw = w * 0.76f;
         float dh = h * 0.44f;
         float dx = (w - dw) * 0.5f;
         float dy = (h - dh) * 0.5f;
@@ -948,22 +965,22 @@ public class FilmCarouselView extends View {
         canvas.drawRoundRect(rect, 10, 10, pDraw);
 
         pText.setColor(0xFFFFFFFF);
-        pText.setTextSize(15);
+        pText.setTextSize(15.5f);
         pText.setFakeBoldText(true);
-        drawFittedText(canvas, "XÁC NHẬN", w * 0.5f, dy + dh * 0.18f, pText, dw - 20, Paint.Align.CENTER);
+        drawFittedText(canvas, "CONFIRM ACTION", w * 0.5f, dy + dh * 0.18f, pText, dw - 20, Paint.Align.CENTER);
 
-        pText.setTextSize(13);
+        pText.setTextSize(13.5f);
         pText.setFakeBoldText(false);
         drawFittedText(canvas, title, w * 0.5f, dy + dh * 0.52f, pText, dw - 20, Paint.Align.CENTER);
 
         pText.setColor(0xFFFF9800);
-        pText.setTextSize(12.5f);
+        pText.setTextSize(13.0f);
         drawFittedText(canvas, btnOk + "   |   " + btnCancel, w * 0.5f, dy + dh * 0.82f, pText, dw - 20, Paint.Align.CENTER);
     }
 
     private void drawToast(Canvas canvas, float w, float h, String msg) {
-        float tw = w * 0.70f;
-        float th = 38.0f;
+        float tw = w * 0.72f;
+        float th = 40.0f;
         float tx = (w - tw) * 0.5f;
         float ty = h * 0.40f;
 
@@ -972,9 +989,9 @@ public class FilmCarouselView extends View {
         canvas.drawRoundRect(rect, 6, 6, pDraw);
 
         pText.setColor(0xFFFFFFFF);
-        pText.setTextSize(14);
+        pText.setTextSize(14.5f);
         pText.setFakeBoldText(true);
-        drawFittedText(canvas, msg, w * 0.5f, ty + 24, pText, tw - 16, Paint.Align.CENTER);
+        drawFittedText(canvas, msg, w * 0.5f, ty + 26, pText, tw - 16, Paint.Align.CENTER);
         pText.setFakeBoldText(false);
     }
 }

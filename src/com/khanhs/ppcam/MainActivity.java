@@ -28,9 +28,6 @@ public class MainActivity extends Activity implements FilmCarouselView.CarouselL
         carouselView.setPresets(presets);
     }
 
-    /**
-     * Intercept all key events before any view eats them. Essential for Sony PMCA buttons.
-     */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -61,14 +58,14 @@ public class MainActivity extends Activity implements FilmCarouselView.CarouselL
         return super.onKeyDown(keyCode, event);
     }
 
-    // CarouselListener Callbacks
+    // CarouselListener Callbacks (All English)
     @Override
     public void onApplyPreset(PPPreset preset) {
         boolean ok = PPManager.applyPreset(preset);
         if (ok) {
-            carouselView.showBanner("✓ ĐÃ GÁN ĐÈ VÀO PP7 & ĐỒNG BỘ!");
+            carouselView.showBanner("✓ PP7 OVERWRITTEN & SYNCED!");
         } else {
-            carouselView.showBanner("LỖI GHI NVRAM (CẦN MÁY ẢNH SONY)");
+            carouselView.showBanner("NVRAM ERROR (SONY BODY REQUIRED)");
         }
     }
 
@@ -76,9 +73,9 @@ public class MainActivity extends Activity implements FilmCarouselView.CarouselL
     public void onResetPP7() {
         boolean ok = PPManager.resetPP7();
         if (ok) {
-            carouselView.showBanner("✓ ĐÃ RESET PP7, WB, EV VỀ GỐC!");
+            carouselView.showBanner("✓ PP7 & WB RESET TO DEFAULT!");
         } else {
-            carouselView.showBanner("LỖI RESET NVRAM");
+            carouselView.showBanner("RESET ERROR");
         }
     }
 
@@ -86,10 +83,10 @@ public class MainActivity extends Activity implements FilmCarouselView.CarouselL
     public void onDeletePreset(PPPreset preset) {
         boolean ok = StorageHelper.deletePreset(preset);
         if (ok) {
-            carouselView.showBanner("✓ ĐÃ XOÁ CUỘN FILM KHỎI THẺ NHỚ!");
+            carouselView.showBanner("✓ RECIPE DELETED FROM SD CARD!");
             reloadPresets();
         } else {
-            carouselView.showBanner("KHÔNG THỂ XOÁ FILE NÀY");
+            carouselView.showBanner("CANNOT DELETE FILE");
         }
     }
 
@@ -99,17 +96,23 @@ public class MainActivity extends Activity implements FilmCarouselView.CarouselL
         if (preset.filePath != null) {
             StorageHelper.updatePresetFile(preset);
         }
-        carouselView.showBanner(preset.isFavorite ? "★ ĐÃ THÊM VÀO YÊU THÍCH" : "ĐÃ BỎ YÊU THÍCH");
+        carouselView.showBanner(preset.isFavorite ? "★ ADDED TO FAVORITES" : "REMOVED FROM FAVORITES");
+    }
+
+    @Override
+    public void onReloadSD() {
+        reloadPresets();
+        carouselView.showBanner("✓ SD CARD SCANNED & RELOADED!");
     }
 
     @Override
     public void onOpenEditor(PPPreset editingPreset) {
         boolean ok = StorageHelper.saveCustomPreset(editingPreset);
         if (ok) {
-            carouselView.showBanner("✓ ĐÃ TẠO CUỘN FILM: " + editingPreset.name);
+            carouselView.showBanner("✓ SAVED: " + editingPreset.name);
             reloadPresets();
         } else {
-            carouselView.showBanner("LỖI LƯU THẺ NHỚ");
+            carouselView.showBanner("ERROR SAVING TO SD CARD");
         }
     }
 
