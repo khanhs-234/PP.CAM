@@ -58,12 +58,12 @@ public class MainActivity extends Activity implements FilmCarouselView.CarouselL
         return super.onKeyDown(keyCode, event);
     }
 
-    // CarouselListener Callbacks (All English)
+    // CarouselListener Callbacks (All English, 100% ASCII-safe for PMCA)
     @Override
     public void onApplyPreset(PPPreset preset) {
         boolean ok = PPManager.applyPreset(preset);
         if (ok) {
-            carouselView.showBanner("✓ PP7 OVERWRITTEN & SYNCED!");
+            carouselView.showBanner("[OK] PP7 OVERWRITTEN & SYNCED!");
         } else {
             carouselView.showBanner("NVRAM ERROR (SONY BODY REQUIRED)");
         }
@@ -73,7 +73,7 @@ public class MainActivity extends Activity implements FilmCarouselView.CarouselL
     public void onResetPP7() {
         boolean ok = PPManager.resetPP7();
         if (ok) {
-            carouselView.showBanner("✓ PP7 & WB RESET TO DEFAULT!");
+            carouselView.showBanner("[OK] PP7 & WB RESET TO DEFAULT!");
         } else {
             carouselView.showBanner("RESET ERROR");
         }
@@ -83,7 +83,7 @@ public class MainActivity extends Activity implements FilmCarouselView.CarouselL
     public void onDeletePreset(PPPreset preset) {
         boolean ok = StorageHelper.deletePreset(preset);
         if (ok) {
-            carouselView.showBanner("✓ RECIPE DELETED FROM SD CARD!");
+            carouselView.showBanner("[OK] RECIPE DELETED FROM SD CARD!");
             reloadPresets();
         } else {
             carouselView.showBanner("CANNOT DELETE FILE");
@@ -96,20 +96,20 @@ public class MainActivity extends Activity implements FilmCarouselView.CarouselL
         if (preset.filePath != null) {
             StorageHelper.updatePresetFile(preset);
         }
-        carouselView.showBanner(preset.isFavorite ? "★ ADDED TO FAVORITES" : "REMOVED FROM FAVORITES");
+        carouselView.showBanner(preset.isFavorite ? "[FAV] ADDED TO FAVORITES" : "REMOVED FROM FAVORITES");
     }
 
     @Override
     public void onReloadSD() {
         reloadPresets();
-        carouselView.showBanner("✓ SD CARD SCANNED & RELOADED!");
+        carouselView.showBanner("[OK] SD CARD SCANNED & RELOADED!");
     }
 
     @Override
     public void onOpenEditor(PPPreset editingPreset) {
         boolean ok = StorageHelper.saveCustomPreset(editingPreset);
         if (ok) {
-            carouselView.showBanner("✓ SAVED: " + editingPreset.name);
+            carouselView.showBanner("[OK] SAVED: " + editingPreset.name);
             reloadPresets();
         } else {
             carouselView.showBanner("ERROR SAVING TO SD CARD");
