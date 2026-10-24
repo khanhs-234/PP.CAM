@@ -1,6 +1,8 @@
 package com.khanhs.ppcam;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -103,14 +105,18 @@ public class FilmCarouselView extends View {
         { "6", "7", "8", "9", "-", "SPACE", "DEL", "OK" }
     };
 
-    // Graphics Paints
+    // Graphics Paints & Bitmaps
     private final Paint pText = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint pDraw = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint pBitmap = new Paint();
     private final Paint pBg = new Paint();
     private final RectF rect = new RectF();
     private final Path cardPath = new Path();
     private final Path starPath = new Path();
     private final Path leaderPath = new Path();
+
+    // 8-Bit Pixel Art Template Bitmaps
+    private Bitmap bmpCineStill;
 
     /**
      * Renders a perfect 5-pointed geometric vector star (100% font-independent, zero tofu boxes).
@@ -144,6 +150,15 @@ public class FilmCarouselView extends View {
         // Dark Slate Gray background so black film strip and sprocket holes stand out with high contrast
         pBg.setColor(0xFF272B30);
         setFocusable(true);
+
+        pBitmap.setFilterBitmap(false); // Pixel-perfect nearest-neighbor scaling for retro 8-bit look
+
+        // Load 8-Bit Pixel Art Template Bitmaps from assets/images/
+        try {
+            bmpCineStill = BitmapFactory.decodeStream(getContext().getAssets().open("images/cinestill_50d.png"));
+        } catch (Exception e) {
+            bmpCineStill = null;
+        }
 
         // Load Custom Fonts from assets/fonts/
         try {
@@ -706,6 +721,35 @@ public class FilmCarouselView extends View {
         float bodyH = 134.0f;
         float halfW = bodyW / 2;
         float halfH = bodyH / 2;
+
+        // -------------------------------------------------------------
+        // 0. EMBEDDED 8-BIT BITMAP TEMPLATE (CineStill 50D)
+        // -------------------------------------------------------------
+        if (p.filmType == PPPreset.TYPE_CINESTILL && bmpCineStill != null) {
+            // Soft ground shadow
+            pDraw.setColor(0x40000000);
+            rect.set(-halfW - 6, halfH + 8, halfW + 68, halfH + 24);
+            canvas.drawOval(rect, pDraw);
+
+            // Render authentic 8-bit CineStill 50D Graphic
+            float bmpW = 176.0f;
+            float bmpH = 182.0f;
+            float left = -halfW - 4.0f;
+            float top = -halfH - 24.0f;
+            rect.set(left, top, left + bmpW, top + bmpH);
+            pBitmap.setAlpha(alpha);
+            canvas.drawBitmap(bmpCineStill, null, rect, pBitmap);
+
+            // Floating favorite star if favorite
+            if (p.isFavorite) {
+                pDraw.setColor(0xFFFFD700);
+                pDraw.setStyle(Paint.Style.FILL);
+                pDraw.setAlpha(alpha);
+                drawVectorStar(canvas, 0, top - 14.0f, 15.0f, 7.0f, pDraw);
+            }
+            canvas.restore();
+            return;
+        }
 
         int baseColor, acetateColor;
         switch (p.filmType) {
