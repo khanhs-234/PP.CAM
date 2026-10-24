@@ -12,9 +12,11 @@ public class KeyCodes {
     public static final int SONY_MENU      = 514;
     public static final int SONY_DELETE    = 595; // C4 / Trash
     public static final int SONY_FN        = 520; // Fn
-    public static final int SONY_C1        = 622;
+    public static final int SONY_C1        = 622; // C1
     public static final int SONY_C2        = 623; // C2 (Favorite ★)
     public static final int SONY_C3        = 659; // C3 (Reset PP7)
+    public static final int SONY_CUSTOM    = 588; // Custom button
+    public static final int SONY_AEL       = 532; // AEL lever/button
     public static final int SONY_WHEEL_CW  = 522;
     public static final int SONY_WHEEL_CCW = 523;
     public static final int SONY_DIAL_CW   = 525;
@@ -72,10 +74,14 @@ public class KeyCodes {
         }
 
         // 5. C2 (Favorite)
-        if (scan == SONY_C2) return Action.FAVORITE_C2;
+        if (scan == SONY_C2 || scan == SONY_C1) return Action.FAVORITE_C2;
 
-        // 6. C3 (Reset)
-        if (scan == SONY_C3) return Action.RESET_C3;
+        // 6. C3 (Reset PP7, WB, EV) - Catch 659, 588, 532 (AEL), or hardware key
+        if (scan == SONY_C3 || scan == SONY_CUSTOM || scan == SONY_AEL ||
+            code == KeyEvent.KEYCODE_BUTTON_C || code == KeyEvent.KEYCODE_PROG_BLUE ||
+            code == KeyEvent.KEYCODE_F3) {
+            return Action.RESET_C3;
+        }
 
         // 7. C4 / Trash (Delete)
         if (scan == SONY_DELETE || code == KeyEvent.KEYCODE_DEL || code == KeyEvent.KEYCODE_FORWARD_DEL) {
@@ -83,8 +89,11 @@ public class KeyCodes {
         }
 
         // 8. Fn (Edit)
-        if (scan == SONY_FN || code == KeyEvent.KEYCODE_FUNCTION) {
-            return Action.EDIT_FN;
+        if (scan == SONY_FN || code == KeyEvent.KEYCODE_FUNCTION || code == KeyEvent.KEYCODE_MENU) {
+            // Note: Menu handled separately below, only map Fn here
+            if (scan == SONY_FN || code == KeyEvent.KEYCODE_FUNCTION) {
+                return Action.EDIT_FN;
+            }
         }
 
         // 9. Menu

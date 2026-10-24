@@ -28,6 +28,25 @@ public class MainActivity extends Activity implements FilmCarouselView.CarouselL
         carouselView.setPresets(presets);
     }
 
+    /**
+     * Intercept all key events before any view eats them. Essential for Sony PMCA buttons.
+     */
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            KeyCodes.Action action = KeyCodes.mapEvent(event);
+            if (action == KeyCodes.Action.EXIT_SHUTTER) {
+                finish();
+                return true;
+            }
+            if (action != KeyCodes.Action.NONE) {
+                carouselView.onAction(action);
+                return true;
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         KeyCodes.Action action = KeyCodes.mapEvent(event);
@@ -70,7 +89,7 @@ public class MainActivity extends Activity implements FilmCarouselView.CarouselL
             carouselView.showBanner("✓ ĐÃ XOÁ CUỘN FILM KHỎI THẺ NHỚ!");
             reloadPresets();
         } else {
-            carouselView.showBanner("KHÔNG THỂ XOÁ FILE");
+            carouselView.showBanner("KHÔNG THỂ XOÁ FILE NÀY");
         }
     }
 
@@ -80,13 +99,14 @@ public class MainActivity extends Activity implements FilmCarouselView.CarouselL
         if (preset.filePath != null) {
             StorageHelper.updatePresetFile(preset);
         }
+        carouselView.showBanner(preset.isFavorite ? "★ ĐÃ THÊM VÀO YÊU THÍCH" : "ĐÃ BỎ YÊU THÍCH");
     }
 
     @Override
     public void onOpenEditor(PPPreset editingPreset) {
         boolean ok = StorageHelper.saveCustomPreset(editingPreset);
         if (ok) {
-            carouselView.showBanner("✓ ĐÃ LƯU: " + editingPreset.name);
+            carouselView.showBanner("✓ ĐÃ TẠO CUỘN FILM: " + editingPreset.name);
             reloadPresets();
         } else {
             carouselView.showBanner("LỖI LƯU THẺ NHỚ");
