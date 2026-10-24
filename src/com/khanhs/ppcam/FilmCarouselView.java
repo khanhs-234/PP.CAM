@@ -110,6 +110,7 @@ public class FilmCarouselView extends View {
     private final RectF rect = new RectF();
     private final Path cardPath = new Path();
     private final Path starPath = new Path();
+    private final Path leaderPath = new Path();
 
     /**
      * Renders a perfect 5-pointed geometric vector star (100% font-independent, zero tofu boxes).
@@ -578,12 +579,12 @@ public class FilmCarouselView extends View {
         if (!presets.isEmpty()) {
             if (presets.size() > 1) {
                 int prevIdx = (currentIndex - 1 + presets.size()) % presets.size();
-                drawFlatVectorCanister(canvas, presets.get(prevIdx), w * 0.13f - 18.0f, stageCenterY, 0.65f, 0.35f);
+                drawFlatVectorCanister(canvas, presets.get(prevIdx), w * 0.12f - 30.0f, stageCenterY, 0.62f, 0.30f);
 
                 int nextIdx = (currentIndex + 1) % presets.size();
-                drawFlatVectorCanister(canvas, presets.get(nextIdx), w * 0.87f - 18.0f, stageCenterY, 0.65f, 0.35f);
+                drawFlatVectorCanister(canvas, presets.get(nextIdx), w * 0.88f - 30.0f, stageCenterY, 0.62f, 0.30f);
             }
-            drawFlatVectorCanister(canvas, curr, w * 0.5f - 26.0f, stageCenterY, 1.0f, 1.0f);
+            drawFlatVectorCanister(canvas, curr, w * 0.5f - 46.0f, stageCenterY, 1.0f, 1.0f);
         }
 
         // -------------------------------------------------------------
@@ -685,8 +686,10 @@ public class FilmCarouselView extends View {
     }
 
     /**
-     * Renders a Minimalist Flat 2D Vector Film Canister (Enlarged & High-Contrast).
-     * Anatomy: Vertical cylinder body, metal caps & spool, and extended film strip with sprocket holes.
+     * Renders a Retro 35mm Film Canister simulation matching pixel-art reference:
+     * - Authentic 35mm stepped film leader (acetate base, tongue cutout, dual-row sprocket holes).
+     * - Cylindrical body with 3D elliptical metal caps and center spool hub with notch.
+     * - Specular vertical glossy highlight stripes and brand-accurate retro artwork.
      */
     private void drawFlatVectorCanister(Canvas canvas, PPPreset p, float cx, float cy, float scale, float opacity) {
         if (p == null) return;
@@ -696,137 +699,331 @@ public class FilmCarouselView extends View {
 
         int alpha = (int) (255 * opacity);
         int bgColor = 0xFF272B30; // Matches pBg to create authentic see-through sprocket holes
+        int outlineColor = 0xFF0F1218;
 
-        // Enlarged film canister body dimensions (30% larger for immersive presence)
-        float bodyW = 96.0f;
-        float bodyH = 132.0f;
+        // Canister Body Dimensions
+        float bodyW = 90.0f;
+        float bodyH = 134.0f;
         float halfW = bodyW / 2;
         float halfH = bodyH / 2;
 
-        int baseColor, accentColor;
-        String brandLabel, speedLabel;
-
+        int baseColor, acetateColor;
         switch (p.filmType) {
             case PPPreset.TYPE_KODAK:
-                baseColor = 0xFFFFC107; // Kodak Yellow
-                accentColor = 0xFFD32F2F; // Red
-                brandLabel = "KODAK";
-                speedLabel = "200";
+                baseColor = 0xFFFFC800;    // Vivid Kodak Yellow
+                acetateColor = 0xFF3E2419; // Warm Amber Acetate
                 break;
             case PPPreset.TYPE_FUJI:
-                baseColor = 0xFF2E7D32; // Fuji Green
-                accentColor = 0xFFFFFFFF; // White
-                brandLabel = "FUJI";
-                speedLabel = "400";
+                baseColor = 0xFF2E7D32;    // Fuji Emerald Green
+                acetateColor = 0xFF2D281E; // Olive Amber Acetate
                 break;
             case PPPreset.TYPE_CINESTILL:
-                baseColor = 0xFF212121; // Matte Cine Black
-                accentColor = 0xFFF44336; // Vivid Red
-                brandLabel = "CINE";
-                speedLabel = "50D";
+                baseColor = 0xFF37474F;    // Slate Blue Metallic
+                acetateColor = 0xFF1A252C; // Dark Tungsten Slate
                 break;
             case PPPreset.TYPE_MONOCHROME:
-                baseColor = 0xFF424242; // Cement Gray
-                accentColor = 0xFFFFFFFF; // White
-                brandLabel = "B&W";
-                speedLabel = "100";
+                baseColor = 0xFF262626;    // Deep Monochrome Black
+                acetateColor = 0xFF1E1E1E; // Charcoal Acetate
                 break;
             case PPPreset.TYPE_BODY_CUSTOM:
             default:
-                baseColor = 0xFF8E24AA; // Custom Purple
-                accentColor = 0xFF18FFFF; // Cyan
-                brandLabel = "CUSTOM";
-                speedLabel = "PP7";
+                baseColor = 0xFF6A1B9A;    // Cyber Violet
+                acetateColor = 0xFF231929; // Deep Violet Acetate
                 break;
         }
 
-        // 1. EXTENDED FILM STRIP (Film leader)
-        float filmW = 70.0f;
-        float filmH = 96.0f;
-        float filmX = halfW - 12.0f;
-        float filmY = -halfH + 18.0f;
-
-        // Subtle shadow behind film strip
+        // -------------------------------------------------------------
+        // 1. SOFT GROUND SHADOW
+        // -------------------------------------------------------------
         pDraw.setColor(0x40000000);
-        canvas.drawRect(filmX + 6, filmY + 6, filmX + filmW + 6, filmY + filmH + 6, pDraw);
+        rect.set(-halfW - 6, halfH + 10, halfW + 68, halfH + 26);
+        canvas.drawOval(rect, pDraw);
 
-        // Glossy dark plastic strip
-        pDraw.setColor(0xFF151515);
-        pDraw.setAlpha(alpha);
-        canvas.drawRect(filmX, filmY, filmX + filmW, filmY + filmH, pDraw);
+        // -------------------------------------------------------------
+        // 2. AUTHENTIC 35mm STEPPED FILM LEADER (Dải phim thò ra)
+        // -------------------------------------------------------------
+        float filmX = halfW - 8.0f;
+        float filmY = -halfH + 20.0f;
+        float leaderW = 104.0f;     // Total extension
+        float leaderFullH = 94.0f;  // Full height near canister
+        float tongueH = 54.0f;      // Narrow tongue height
+        float tongueStart = 48.0f;  // Cutout point
 
-        // Transparent sprocket holes revealing canvas background (6 authentic pairs)
-        pDraw.setColor(bgColor);
+        // Stepped Leader Dark Outline
+        leaderPath.reset();
+        leaderPath.moveTo(filmX, filmY - 2);
+        leaderPath.lineTo(filmX + leaderW + 2, filmY - 2);
+        leaderPath.lineTo(filmX + leaderW + 3, filmY + tongueH);
+        leaderPath.lineTo(filmX + tongueStart + 6, filmY + tongueH + 2);
+        leaderPath.lineTo(filmX + tongueStart - 4, filmY + leaderFullH + 2);
+        leaderPath.lineTo(filmX, filmY + leaderFullH + 2);
+        leaderPath.close();
+        pDraw.setColor(outlineColor);
         pDraw.setAlpha(alpha);
-        float holeW = 7.0f;
-        float holeH = 9.0f;
-        float holeGap = 15.0f;
-        for (int i = 0; i < 6; i++) {
-            float hy = filmY + 8 + (i * holeGap);
-            canvas.drawRect(filmX + 9, hy, filmX + 9 + holeW, hy + holeH, pDraw);
-            canvas.drawRect(filmX + filmW - 16, hy, filmX + filmW - 16 + holeW, hy + holeH, pDraw);
+        canvas.drawPath(leaderPath, pDraw);
+
+        // Acetate Film Base Fill
+        leaderPath.reset();
+        leaderPath.moveTo(filmX, filmY);
+        leaderPath.lineTo(filmX + leaderW, filmY);
+        leaderPath.lineTo(filmX + leaderW + 1, filmY + tongueH);
+        leaderPath.lineTo(filmX + tongueStart + 4, filmY + tongueH);
+        leaderPath.lineTo(filmX + tongueStart - 4, filmY + leaderFullH);
+        leaderPath.lineTo(filmX, filmY + leaderFullH);
+        leaderPath.close();
+        pDraw.setColor(acetateColor);
+        pDraw.setAlpha(alpha);
+        canvas.drawPath(leaderPath, pDraw);
+
+        // Subtle Acetate Scanline Sheen
+        pDraw.setColor(0x18FFFFFF);
+        pDraw.setAlpha((int) (alpha * 0.10f));
+        for (int s = 0; s < leaderFullH; s += 6) {
+            float lineW = (s < tongueH) ? leaderW : (tongueStart - 6);
+            canvas.drawRect(filmX, filmY + s, filmX + lineW, filmY + s + 2, pDraw);
         }
 
-        // 2. CANISTER DROP SHADOW
-        pDraw.setColor(0x50000000);
-        rect.set(-halfW + 6, -halfH + 6, halfW + 6, halfH + 6);
-        canvas.drawRoundRect(rect, 6, 6, pDraw);
+        // Sprocket Holes (Lỗ xỏ phim)
+        float holeW = 8.0f;
+        float holeH = 11.0f;
+        for (int i = 0; i < 5; i++) {
+            float hx = filmX + 12.0f + (i * 18.0f);
+            float hy = filmY + 6.0f;
+            // Border
+            pDraw.setColor(outlineColor);
+            pDraw.setAlpha(alpha);
+            rect.set(hx - 1, hy - 1, hx + holeW + 1, hy + holeH + 1);
+            canvas.drawRoundRect(rect, 3, 3, pDraw);
+            // Hole see-through
+            pDraw.setColor(bgColor);
+            rect.set(hx, hy, hx + holeW, hy + holeH);
+            canvas.drawRoundRect(rect, 2, 2, pDraw);
+        }
 
-        // 3. METAL CAPS & CENTER SPOOL
-        pDraw.setColor(0xFFCFD8DC); // Bright metallic
+        // Bottom Row of Sprocket Holes (Only in the wide section before the tongue step!)
+        for (int i = 0; i < 2; i++) {
+            float hx = filmX + 12.0f + (i * 18.0f);
+            float hy = filmY + leaderFullH - 17.0f;
+            pDraw.setColor(outlineColor);
+            pDraw.setAlpha(alpha);
+            rect.set(hx - 1, hy - 1, hx + holeW + 1, hy + holeH + 1);
+            canvas.drawRoundRect(rect, 3, 3, pDraw);
+            pDraw.setColor(bgColor);
+            rect.set(hx, hy, hx + holeW, hy + holeH);
+            canvas.drawRoundRect(rect, 2, 2, pDraw);
+        }
+
+        // Slit shadow where film leaves the canister
+        pDraw.setColor(0x77000000);
+        canvas.drawRect(filmX - 2, filmY - 2, filmX + 4, filmY + leaderFullH + 2, pDraw);
+
+        // -------------------------------------------------------------
+        // 3. BOTTOM CAP & SPOOL (Nắp kim loại đáy)
+        // -------------------------------------------------------------
+        // Bottom Spool protrusion
+        rect.set(-14, halfH + 2, 14, halfH + 16);
+        pDraw.setColor(outlineColor);
         pDraw.setAlpha(alpha);
-        // Top spool projection
-        rect.set(-16, -halfH - 18, 16, -halfH);
-        canvas.drawRoundRect(rect, 4, 4, pDraw);
-        // Bottom spool projection
-        rect.set(-16, halfH, 16, halfH + 14);
-        canvas.drawRoundRect(rect, 4, 4, pDraw);
+        canvas.drawRect(rect, pDraw);
+        rect.set(-12, halfH + 4, 12, halfH + 14);
+        pDraw.setColor(0xFF252B36);
+        canvas.drawRect(rect, pDraw);
+        rect.set(-8, halfH + 4, 0, halfH + 14);
+        pDraw.setColor(0xFF3C4556);
+        canvas.drawRect(rect, pDraw);
 
-        // Metal caps (wider than canister body)
-        pDraw.setColor(0xFF90A4AE); // Deep metallic rim
-        pDraw.setAlpha(alpha);
-        rect.set(-halfW - 7, -halfH - 9, halfW + 7, -halfH + 4);
-        canvas.drawRoundRect(rect, 6, 6, pDraw);
-        rect.set(-halfW - 7, halfH - 4, halfW + 7, halfH + 9);
+        // Bottom Cap Ellipse
+        rect.set(-halfW - 6, halfH - 7, halfW + 6, halfH + 17);
+        pDraw.setColor(outlineColor);
+        canvas.drawOval(rect, pDraw);
+
+        rect.set(-halfW - 4, halfH - 6, halfW + 4, halfH + 14);
+        pDraw.setColor(0xFF3C4556);
+        canvas.drawOval(rect, pDraw);
+
+        // -------------------------------------------------------------
+        // 4. MAIN CYLINDER BODY (Thân hộp phim)
+        // -------------------------------------------------------------
+        // Dark outline
+        rect.set(-halfW - 3, -halfH - 2, halfW + 3, halfH + 2);
+        pDraw.setColor(outlineColor);
         canvas.drawRoundRect(rect, 6, 6, pDraw);
 
-        // 4. CANISTER MAIN BODY LABEL
+        // Base color
+        rect.set(-halfW, -halfH, halfW, halfH);
         pDraw.setColor(baseColor);
         pDraw.setAlpha(alpha);
-        canvas.drawRect(-halfW, -halfH, halfW, halfH, pDraw);
+        canvas.drawRoundRect(rect, 4, 4, pDraw);
 
-        // Decorative horizontal black band
-        pDraw.setColor(0xFF111111);
+        // Cylindrical Edge Shading
+        pDraw.setColor(0x3B000000);
+        canvas.drawRect(-halfW, -halfH, -halfW + 10, halfH, pDraw);
+        pDraw.setColor(0x44000000);
+        canvas.drawRect(halfW - 14, -halfH, halfW, halfH, pDraw);
+
+        // Glossy Specular Highlight Band (Creates the 3D rounded metal look)
+        pDraw.setColor(0x22FFFFFF);
+        canvas.drawRect(-halfW + 12, -halfH, -halfW + 32, halfH, pDraw);
+        pDraw.setColor(0x66FFFFFF);
+        canvas.drawRect(-halfW + 18, -halfH, -halfW + 28, halfH, pDraw);
+        pDraw.setColor(0xAAFFFFFF);
+        canvas.drawRect(-halfW + 21, -halfH, -halfW + 25, halfH, pDraw);
+
+        // -------------------------------------------------------------
+        // 5. BRAND ARTWORK & TYPOGRAPHY
+        // -------------------------------------------------------------
+        if (p.filmType == PPPreset.TYPE_KODAK) {
+            // Red vertical block on left
+            pDraw.setColor(0xFFD32F2F);
+            pDraw.setAlpha(alpha);
+            canvas.drawRect(-halfW + 6, -halfH + 16, -halfW + 32, halfH - 16, pDraw);
+
+            // Blue badge with "200"
+            pDraw.setColor(0xFF1565C0);
+            rect.set(-halfW + 8, -14, -halfW + 30, 10);
+            canvas.drawRoundRect(rect, 3, 3, pDraw);
+            pText.setColor(0xFFFFEB3B);
+            pText.setTextSize(14.0f);
+            pText.setTypeface(customFontBold != null ? customFontBold : Typeface.DEFAULT_BOLD);
+            pText.setTextAlign(Paint.Align.CENTER);
+            pText.setAlpha(alpha);
+            canvas.drawText("200", -halfW + 19, 4, pText);
+
+            // Vertical 200 in blue
+            canvas.save();
+            canvas.translate(-2, 10);
+            canvas.rotate(-90);
+            pText.setColor(0xFF1565C0);
+            pText.setTextSize(36.0f);
+            canvas.drawText("200", 0, 0, pText);
+            canvas.restore();
+
+            // Vertical KODAK in red
+            canvas.save();
+            canvas.translate(24, 0);
+            canvas.rotate(90);
+            pText.setColor(0xFFD32F2F);
+            pText.setTextSize(16.0f);
+            canvas.drawText("KODAK", 0, 0, pText);
+            canvas.restore();
+        } else if (p.filmType == PPPreset.TYPE_CINESTILL) {
+            // Red & White Racing Stripes
+            pDraw.setColor(0xFFE53935);
+            pDraw.setAlpha(alpha);
+            canvas.drawRect(-halfW + 8, -halfH + 12, -halfW + 14, halfH - 12, pDraw);
+            pDraw.setColor(0xFFFFFFFF);
+            canvas.drawRect(-halfW + 16, -halfH + 12, -halfW + 20, halfH - 12, pDraw);
+
+            // CINE 50 in bold white
+            pText.setColor(0xFFFFFFFF);
+            pText.setTextAlign(Paint.Align.CENTER);
+            pText.setTypeface(customFontBold != null ? customFontBold : Typeface.DEFAULT_BOLD);
+            pText.setAlpha(alpha);
+            pText.setTextSize(24.0f);
+            canvas.drawText("CINE", 4, -4, pText);
+            pText.setTextSize(38.0f);
+            canvas.drawText("50", 4, 38, pText);
+        } else if (p.filmType == PPPreset.TYPE_FUJI) {
+            // White header block
+            pDraw.setColor(0xFFFFFFFF);
+            pDraw.setAlpha(alpha);
+            canvas.drawRect(-halfW + 8, -halfH + 16, halfW - 8, -halfH + 48, pDraw);
+
+            pText.setColor(0xFF1B5E20);
+            pText.setTextSize(20.0f);
+            pText.setTextAlign(Paint.Align.CENTER);
+            pText.setTypeface(customFontBold != null ? customFontBold : Typeface.DEFAULT_BOLD);
+            pText.setAlpha(alpha);
+            canvas.drawText("FUJI", 0, -halfH + 40, pText);
+
+            pText.setColor(0xFFFFFFFF);
+            pText.setTextSize(40.0f);
+            canvas.drawText("400", 0, 34, pText);
+        } else if (p.filmType == PPPreset.TYPE_MONOCHROME) {
+            // White header block
+            pDraw.setColor(0xFFFFFFFF);
+            pDraw.setAlpha(alpha);
+            canvas.drawRect(-halfW + 6, -halfH + 18, halfW - 6, -halfH + 46, pDraw);
+
+            pText.setColor(0xFF000000);
+            pText.setTextSize(17.0f);
+            pText.setTextAlign(Paint.Align.CENTER);
+            pText.setTypeface(customFontBold != null ? customFontBold : Typeface.DEFAULT_BOLD);
+            pText.setAlpha(alpha);
+            canvas.drawText("ILFORD", 0, -halfH + 39, pText);
+
+            pText.setColor(0xFFFFFFFF);
+            pText.setTextSize(38.0f);
+            canvas.drawText("100", 0, 34, pText);
+        } else {
+            // Custom PP7
+            pDraw.setColor(0xFF00E5FF);
+            pDraw.setAlpha(alpha);
+            canvas.drawRect(-halfW + 6, -halfH + 16, halfW - 6, -halfH + 44, pDraw);
+
+            pText.setColor(0xFF000000);
+            pText.setTextSize(16.0f);
+            pText.setTextAlign(Paint.Align.CENTER);
+            pText.setTypeface(customFontBold != null ? customFontBold : Typeface.DEFAULT_BOLD);
+            pText.setAlpha(alpha);
+            canvas.drawText("CUSTOM", 0, -halfH + 37, pText);
+
+            pText.setColor(0xFF00E5FF);
+            pText.setTextSize(38.0f);
+            canvas.drawText("PP7", 0, 34, pText);
+        }
+
+        // -------------------------------------------------------------
+        // 6. TOP METALLIC CAP & CENTER SPOOL HUB
+        // -------------------------------------------------------------
+        // Outer Cap Rim
+        rect.set(-halfW - 6, -halfH - 15, halfW + 6, -halfH + 11);
+        pDraw.setColor(outlineColor);
         pDraw.setAlpha(alpha);
-        canvas.drawRect(-halfW, -halfH + 15, halfW, -halfH + 50, pDraw);
+        canvas.drawOval(rect, pDraw);
 
-        // 5. TYPOGRAPHY ON BODY LABEL
-        pText.setAlpha(alpha);
-        pText.setTextAlign(Paint.Align.CENTER);
-        pText.setTypeface(customFontBold != null ? customFontBold : Typeface.DEFAULT_BOLD);
+        // Cap Metallic Face
+        rect.set(-halfW - 4, -halfH - 14, halfW + 4, -halfH + 8);
+        pDraw.setColor(0xFF3C4556);
+        canvas.drawOval(rect, pDraw);
 
-        // Brand Label inside black band
-        pText.setColor(accentColor);
-        pText.setTextSize(26.0f);
-        canvas.drawText(brandLabel, 0, -halfH + 41, pText);
+        // Top Highlight Rim
+        rect.set(-halfW - 2, -halfH - 13, halfW + 2, -halfH + 3);
+        pDraw.setColor(0xFF6C7B95);
+        canvas.drawOval(rect, pDraw);
 
-        // Large bold ISO speed number
-        pText.setColor(accentColor == 0xFFFFFFFF ? 0xFFFFFFFF : 0xFF181A1B);
-        pText.setTextSize(58.0f);
-        canvas.drawText(speedLabel, 0, 30, pText);
+        // Raised Center Spool Hub
+        float spoolW = 28.0f;
+        float spoolH = 20.0f;
+        rect.set(-spoolW / 2 - 2, -halfH - spoolH - 4, spoolW / 2 + 2, -halfH);
+        pDraw.setColor(outlineColor);
+        canvas.drawRoundRect(rect, 5, 5, pDraw);
 
-        // Subtitle
-        pText.setTypeface(customFont != null ? customFont : Typeface.DEFAULT);
-        pText.setColor(0x88000000);
-        pText.setTextSize(14.0f);
-        canvas.drawText("36 EXPOSURES", 0, 53, pText);
+        rect.set(-spoolW / 2, -halfH - spoolH - 2, spoolW / 2, -halfH - 2);
+        pDraw.setColor(0xFF252B36);
+        canvas.drawRoundRect(rect, 3, 3, pDraw);
 
-        // 6. FLOATING FAVORITE STAR ICON (Geometric vector star, zero tofu font box)
+        // Spool Highlight
+        pDraw.setColor(0xFF6C7B95);
+        canvas.drawRect(-spoolW / 2 + 3, -halfH - spoolH - 2, -spoolW / 2 + 10, -halfH - 2, pDraw);
+
+        // Hollow Center Spool Notch / Hole
+        rect.set(-7, -halfH - spoolH - 4, 7, -halfH - spoolH + 4);
+        pDraw.setColor(outlineColor);
+        canvas.drawOval(rect, pDraw);
+
+        rect.set(-5, -halfH - spoolH - 3, 5, -halfH - spoolH + 3);
+        pDraw.setColor(0xFF0A0C10);
+        canvas.drawOval(rect, pDraw);
+
+        // -------------------------------------------------------------
+        // 7. FLOATING FAVORITE STAR (Geometric Vector)
+        // -------------------------------------------------------------
         if (p.isFavorite) {
             pDraw.setColor(0xFFFFD700);
             pDraw.setStyle(Paint.Style.FILL);
             pDraw.setAlpha(alpha);
-            drawVectorStar(canvas, 0, -halfH - 28.0f, 15.0f, 7.0f, pDraw);
+            drawVectorStar(canvas, 0, -halfH - spoolH - 18.0f, 15.0f, 7.0f, pDraw);
         }
 
         canvas.restore();
