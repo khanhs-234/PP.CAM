@@ -29,6 +29,8 @@ jobs:
           "$SDKMANAGER" "build-tools;30.0.3" "platforms;android-28"
 
       - name: Build PPCAM APK
+        env:
+          ANDROID_SDK: ${{ env.ANDROID_SDK_ROOT }}
         run: |
           chmod +x build.sh
           ./build.sh
