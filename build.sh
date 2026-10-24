@@ -42,7 +42,7 @@ rm -rf out
 mkdir -p out/gen out/classes out/dex out/lib/armeabi
 
 echo "=== [2/6] Biên dịch Resources (aapt R.java) ==="
-"$BT/aapt" package -f -m -J out/gen -M AndroidManifest.xml -S res -I "$PLATFORM_JAR"
+"$BT/aapt" package -f -m -J out/gen -M AndroidManifest.xml -S res -A assets -I "$PLATFORM_JAR"
 
 echo "=== [3/6] Biên dịch mã nguồn Java (javac) ==="
 find out/gen src -name "*.java" > out/sources.txt
@@ -54,7 +54,7 @@ find out/classes -name "*.class" > out/classes.txt
   --release --min-api 10 --lib "$PLATFORM_JAR" --output out/dex @"out/classes.txt"
 
 echo "=== [5/6] Đóng gói APK và nhúng Thư viện Native JNI ==="
-"$BT/aapt" package -f -M AndroidManifest.xml -S res -I "$PLATFORM_JAR" -F out/unaligned.apk
+"$BT/aapt" package -f -M AndroidManifest.xml -S res -A assets -I "$PLATFORM_JAR" -F out/unaligned.apk
 ( cd out/dex && "$BT/aapt" add ../unaligned.apk classes.dex )
 
 cp lib/armeabi/librecipelab.so out/lib/armeabi/
